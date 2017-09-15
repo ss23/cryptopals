@@ -1,12 +1,12 @@
 package main
 
 import (
-	"encoding/hex"
 	"encoding/base64"
+	"encoding/hex"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
-	"fmt"
 )
 
 func main() {
@@ -20,7 +20,7 @@ func main() {
 	fmt.Println(base64)
 }
 
-func decodeHex(src []byte) ([]byte) {
+func decodeHex(src []byte) []byte {
 	dst := make([]byte, hex.DecodedLen(len(src)))
 	_, err := hex.Decode(dst, src)
 	if err != nil {
@@ -29,6 +29,6 @@ func decodeHex(src []byte) ([]byte) {
 	return dst
 }
 
-func encodeBase64(src []byte) (string) {
+func encodeBase64(src []byte) string {
 	return base64.StdEncoding.EncodeToString(src)
 }

@@ -1,12 +1,12 @@
 package main
 
 import (
-	"encoding/hex"
 	"encoding/base64"
+	"encoding/hex"
 	//"io/ioutil"
+	"fmt"
 	"log"
 	"os"
-	"fmt"
 )
 
 func main() {
@@ -19,10 +19,12 @@ func main() {
 	bytesRaw1 := decodeHex(bytes1)
 	bytesRaw2 := decodeHex(bytes2)
 
-	bytesXord = xor(bytesRaw1, bytesRaw2)
+	bytesXord := xor(bytesRaw1, bytesRaw2)
+
+	fmt.Println(encodeHex(bytesXord))
 }
 
-func decodeHex(src []byte) ([]byte) {
+func decodeHex(src []byte) []byte {
 	dst := make([]byte, hex.DecodedLen(len(src)))
 	_, err := hex.Decode(dst, src)
 	if err != nil {
@@ -31,12 +33,12 @@ func decodeHex(src []byte) ([]byte) {
 	return dst
 }
 
-func encodeBase64(src []byte) (string) {
+func encodeBase64(src []byte) string {
 	return base64.StdEncoding.EncodeToString(src)
 }
 
 func xor(src1 []byte, src2 []byte) (dst []byte) {
-	if (len(src1) != len(src2)) {
+	if len(src1) != len(src2) {
 		log.Fatal("The two specified strings are not the same length")
 	}
 
