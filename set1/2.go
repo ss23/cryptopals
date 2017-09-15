@@ -33,6 +33,10 @@ func decodeHex(src []byte) []byte {
 	return dst
 }
 
+func encodeHex(src []byte) string {
+	return hex.EncodeToString(src)
+}
+
 func encodeBase64(src []byte) string {
 	return base64.StdEncoding.EncodeToString(src)
 }
