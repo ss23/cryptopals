@@ -28,6 +28,7 @@ func main() {
 	// Attempt to calculate the appropriate keysize
 	// We could cheat and do a quick version of this, but if we get the keysize wrong, the next steps will be hard to determine the error for
 	keysize := 0
+	bestScore := float64(100)
 	for i := 2; i <= 40; i++ {
 		totalDistance := 0
 		numChecked := 0 // we've checked 0 pairs
@@ -56,16 +57,26 @@ func main() {
 			log.Fatal("Error attempting to calculate key length: key is longer than len(input) * 2")
 		}
 
-		fmt.Printf("Key Length: %v - Average Score: %v\r\n", i, (float64(totalDistance)/float64(numChecked))/float64(i))
+		score := (float64(totalDistance) / float64(numChecked)) / float64(i)
+		//fmt.Printf("Key Length: %v - Average Score: %v\r\n", i, score)
 
 		// Check if it's the best keysize, and if so, note it down
-		keysize = i
+		if bestScore > score {
+			keysize = i
+			bestScore = score
+		}
 	}
 	//fmt.Println(encodeHex(bytesRaw))
 
-	fmt.Println(keysize)
+	fmt.Printf("Attempting decryption of repeating xor using keysize %v\r\n", keysize)
 
 	//fmt.Println(hammingDistance([]byte("this is a test"), []byte("wokka wokka!!!")))
+
+	// Chunk the data up into appropriate blocks
+	splitBytes := make([][]byte, keysize)
+	for k, v := range bytesRaw {
+		splitBytes[k%keysize].append(v)
+	}
 }
 
 func decodeHex(src []byte) ([]byte, error) {
