@@ -29,7 +29,7 @@ func main() {
 	// We could cheat and do a quick version of this, but if we get the keysize wrong, the next steps will be hard to determine the error for
 	keysize := 0
 	bestScore := float64(100)
-	for i := 2; i <= 40; i++ {
+	for i := 6; i <= 40; i++ {
 		totalDistance := 0
 		numChecked := 0 // we've checked 0 pairs
 
@@ -58,7 +58,7 @@ func main() {
 		}
 
 		score := (float64(totalDistance) / float64(numChecked)) / float64(i)
-		//fmt.Printf("Key Length: %v - Average Score: %v\r\n", i, score)
+		fmt.Printf("Key Length: %v - Average Score: %v\r\n", i, score)
 
 		// Check if it's the best keysize, and if so, note it down
 		if bestScore > score {
@@ -68,15 +68,31 @@ func main() {
 	}
 	//fmt.Println(encodeHex(bytesRaw))
 
+	//keysize = 29
 	fmt.Printf("Attempting decryption of repeating xor using keysize %v\r\n", keysize)
 
 	//fmt.Println(hammingDistance([]byte("this is a test"), []byte("wokka wokka!!!")))
 
 	// Chunk the data up into appropriate blocks
 	splitBytes := make([][]byte, keysize)
+	//for i := range bytesRaw {
+	//	e := make(byte, 0, 0)
+	//	splitBytes.append(e)
+	//}
 	for k, v := range bytesRaw {
-		splitBytes[k%keysize].append(v)
+		splitBytes[k%keysize] = append(splitBytes[k%keysize], v)
 	}
+
+	// Calculate the most likely key candidate for each
+	secretKey := ""
+	for k, v := range splitBytes {
+		fmt.Println("Cracking key ", k, " with value ", v)
+		secretKey += crackXor(v)
+	}
+
+	fmt.Printf("Key was detected as: %v\r\n", secretKey)
+
+	fmt.Printf("Decrypted message:\r\n%v\r\n", string(xor(bytesRaw, []byte(secretKey))))
 }
 
 func decodeHex(src []byte) ([]byte, error) {
@@ -116,8 +132,16 @@ func scoreByLetterFreq(input []byte) float64 {
 	// Start by filtering out non-ASCII character strings
 	for i := range input {
 		if input[i] > 127 {
+			// ascii too high
+			return 100
+		} else if (input[i] > 14) && (input[i] < 32) {
+			// ascii in the baddie range of kind of valid but not really values
+			return 100
+		} else if input[i] < 10 {
+			// a bit too low for us IMO
 			return 100
 		}
+
 	}
 	// We can probably cheat by just scoring the first few letters
 	var letterFreqs = map[string]float64{
@@ -176,4 +200,23 @@ func hammingDistance(input1 []byte, input2 []byte) int {
 	}
 
 	return distance
+}
+
+func crackXor(bytesRaw []byte) string {
+	candidateKey := ""
+	topScore := float64(100)
+	for i := 0; i < 255; i++ {
+		byteArray := make([]byte, 1)
+		byteArray[0] = byte(i)
+		bytesXord := xor(bytesRaw, byteArray)
+		//if scoreByLetterFreq(bytesXord) < 100 {
+		//	fmt.Printf("Possible key: %v %x with score %v\r\n", string(i), i, scoreByLetterFreq(bytesXord))
+		//}
+		//fmt.Println(string(bytesXord))
+		if scoreByLetterFreq(bytesXord) < topScore {
+			topScore = scoreByLetterFreq(bytesXord)
+			candidateKey = string(i)
+		}
+	}
+	return candidateKey
 }
