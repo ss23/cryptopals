@@ -22,7 +22,26 @@ func main() {
 	// Set up rng
 	rand.Seed(time.Now().UTC().UnixNano())
 
-	randomAESEncryption([]byte("test"))
+	// We know the block size is 16 bytes because I wrote it
+	bs := 16 // 16 bytes
+	plaintext := strings.Repeat("A", bs * 3)
+	ciphertext := randomAESEncryption([]byte(plaintext))
+
+	// Split into bs chunks
+	chunkedText := make([][]byte, 0)
+	for len(ciphertext) > 0 {
+		chunkedText = append(chunkedText, ciphertext[:bs])
+		ciphertext = ciphertext[bs:]
+	}
+
+	// check if any chunks are similar
+	if chunkedText[1] == chunkedText[2] {
+		fmt.Println("It's ECB")
+	} else {
+		fmt.Println("It's CBC")
+	}
+
+	fmt.Println(chunkedText)
 	/*
 
 		// Decode from base64
@@ -171,11 +190,11 @@ func crackXor(bytesRaw []byte) string {
 
 func padPkcs7(bytesRaw []byte, blocksize int) []byte {
 	padding := (blocksize - len(bytesRaw)) % blocksize
-	fmt.Println("padding with bytes: ", padding)
+	//fmt.Println("padding with bytes: ", padding)
 	if padding == 0 {
 		return bytesRaw
 	}
-	fmt.Println("appending")
+	//fmt.Println("appending")
 	return append(bytesRaw, bytes.Repeat([]byte(string(padding)), padding)...)
 }
 
@@ -195,25 +214,42 @@ func decryptCBC(ciphertext []byte, block cipher.Block, iv []byte) []byte {
 	return plaintext
 }
 
-func encryptCBC(ciphertext []byte, block cipher.Block, iv []byte) []byte {
-	//bs := block.BlockSize()
-	//lastBlock := iv
-	/*
-		plaintext := make([]byte, 0)
-		for len(ciphertext) > 0 {
-			blocktext := make([]byte, bs)
-			// xor the last block
-			block.Decrypt(blocktext, ciphertext)
-			plaintext = append(plaintext, xor(blocktext, lastBlock)...)
-			lastBlock = ciphertext[:bs]
-			ciphertext = ciphertext[bs:]
-		} */
-	// write me
-	//return plaintext
-	return []byte("BAD")
+func encryptCBC(plaintext []byte, block cipher.Block, iv []byte) []byte {
+	bs := block.BlockSize()
+	lastBlock := iv
+
+	ciphertext := make([]byte, 0)
+	for len(plaintext) > 0 {
+		if len(plaintext) < bs {
+			plaintext = padPkcs7(plaintext, bs)
+		}
+		blocktext := make([]byte, bs)
+		block.Encrypt(blocktext, xor(plaintext, lastBlock))
+		ciphertext = append(ciphertext, blocktext...)
+		lastBlock = ciphertext[:bs]
+		plaintext = plaintext[bs:]
+	}
+	return ciphertext
 }
 
-func randomAESEncryption(plaintext []byte) {
+func encryptECB(plaintext []byte, block cipher.Block) []byte {
+	bs := block.BlockSize()
+	ciphertext := make([]byte, 0)
+
+	for len(plaintext) > 0 {
+		if len(plaintext) < bs {
+			plaintext = padPkcs7(plaintext, bs)
+		}
+		blocktext := make([]byte, bs)
+		block.Encrypt(blocktext, plaintext)
+		ciphertext = append(ciphertext, blocktext...)
+		plaintext = plaintext[bs:]
+	}
+	return ciphertext
+}
+
+
+func randomAESEncryption(plaintext []byte) []byte {
 	// Generate a random key
 	key := make([]byte, 16)
 	_, err := rand.Read(key)
