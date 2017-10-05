@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/base64"
 	"encoding/hex"
+	"reflect"
 	//"io/ioutil"
 	//"bufio"
 	"bytes"
@@ -24,7 +25,7 @@ func main() {
 
 	// We know the block size is 16 bytes because I wrote it
 	bs := 16 // 16 bytes
-	plaintext := strings.Repeat("A", bs * 3)
+	plaintext := strings.Repeat("A", bs*3)
 	ciphertext := randomAESEncryption([]byte(plaintext))
 
 	// Split into bs chunks
@@ -35,31 +36,13 @@ func main() {
 	}
 
 	// check if any chunks are similar
-	if chunkedText[1] == chunkedText[2] {
+	if reflect.DeepEqual(chunkedText[1], chunkedText[2]) {
 		fmt.Println("It's ECB")
 	} else {
 		fmt.Println("It's CBC")
 	}
 
 	fmt.Println(chunkedText)
-	/*
-
-		// Decode from base64
-		var ciphertext []byte
-		if ciphertext, err = decodeBase64(string(rawBytes)); err != nil {
-			log.Fatal("Failed to decode base64 content: ", err)
-		}
-
-		// Create the AES object
-		block, err := aes.NewCipher([]byte(key))
-		if err != nil {
-			log.Fatal("Failed to initialize AES: ", err)
-		}
-
-		plaintext := decryptCBC(ciphertext, block, bytes.Repeat([]byte("\x00"), block.BlockSize()))
-
-		fmt.Println(string(plaintext))
-		//func decryptCBC(ciphertext []byte, block cipher.Block, iv []byte) []byte { */
 }
 
 func decodeHex(src []byte) ([]byte, error) {
@@ -199,6 +182,7 @@ func padPkcs7(bytesRaw []byte, blocksize int) []byte {
 }
 
 func decryptCBC(ciphertext []byte, block cipher.Block, iv []byte) []byte {
+	// TODO: Verify implmentation
 	bs := block.BlockSize()
 	lastBlock := iv
 
@@ -226,7 +210,7 @@ func encryptCBC(plaintext []byte, block cipher.Block, iv []byte) []byte {
 		blocktext := make([]byte, bs)
 		block.Encrypt(blocktext, xor(plaintext, lastBlock))
 		ciphertext = append(ciphertext, blocktext...)
-		lastBlock = ciphertext[:bs]
+		lastBlock = ciphertext[len(ciphertext)-bs:]
 		plaintext = plaintext[bs:]
 	}
 	return ciphertext
@@ -247,7 +231,6 @@ func encryptECB(plaintext []byte, block cipher.Block) []byte {
 	}
 	return ciphertext
 }
-
 
 func randomAESEncryption(plaintext []byte) []byte {
 	// Generate a random key
@@ -270,6 +253,7 @@ func randomAESEncryption(plaintext []byte) []byte {
 
 	// Decide whether to use CBC or ECB
 	if rand.Intn(2) == 0 {
+		fmt.Println("Encrypting CBC")
 		// Generate the ciphertext using ECB
 		// Create a random IV
 		iv := make([]byte, 16)
@@ -279,6 +263,7 @@ func randomAESEncryption(plaintext []byte) []byte {
 		}
 		return encryptCBC(plaintext, block, iv)
 	} else {
+		fmt.Println("Encrypting ECB")
 		return encryptECB(plaintext, block)
 	}
 }
